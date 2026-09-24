@@ -1,0 +1,22 @@
+{
+  "name": "penelope-assistent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Penelope - KI-Sprachassistent fuer Telefonate und Terminverwaltung",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "googleapis": "^154.0.0",
+    "openai": "^5.12.2",
+    "twilio": "^5.8.0"
+  }
+}
