@@ -1,17 +1,19 @@
 # Penelope Assistent
 
-Penelope ist ein deploybarer KI-Sprachassistent fuer Telefonate und Terminverwaltung.
+Penelope ist ein deploybarer deutschsprachiger KI-Sprachassistent fuer Telefonate und Terminverwaltung.
 
-## Bereits enthalten
+## Funktionen
 
 - Railway-kompatibler Node.js/Express-Server
 - Healthcheck unter `/health`
 - OpenAI-Gespraechslogik
 - Twilio-Outbound-Anrufe ueber `POST /api/call`
-- Twilio-Sprachdialog auf Deutsch
+- Transparente Ansage als digitaler Assistent
 - Google-Calendar-API fuer Termine auflisten, erstellen, aendern und loeschen
-- Schutz der privaten API-Endpunkte per `ADMIN_TOKEN`
-- Alle Geheimnisse ausschliesslich als Environment Variables
+- Calendar-Function-Calling direkt im Telefongespraech
+- Explizite Bestaetigung vor Kalenderaenderungen
+- Geschuetzte private API-Endpunkte per `ADMIN_TOKEN`
+- Geheimnisse nur als Environment Variables
 
 ## Railway
 
@@ -21,21 +23,23 @@ Start Command:
 npm start
 ```
 
-Railway setzt `PORT` automatisch.
-
-Nach dem ersten erfolgreichen Deployment eine Railway-Domain erzeugen und diese als `PUBLIC_BASE_URL` eintragen, zum Beispiel:
+Healthcheck:
 
 ```
-https://penelope-production.up.railway.app
+/health
 ```
+
+Railway setzt `PORT` automatisch. Nach dem Deployment die Railway-Domain als `PUBLIC_BASE_URL` eintragen.
 
 ## Benoetigte Variablen
 
-Siehe `.env.example`.
-
-Mindestens fuer Telefonate:
+Mindestens fuer KI-Gespraeche:
 
 - `OPENAI_API_KEY`
+- `OPENAI_MODEL` (Standard: `gpt-5.6-luna`)
+
+Zusaetzlich fuer Telefonate:
+
 - `TWILIO_ACCOUNT_SID`
 - `TWILIO_AUTH_TOKEN`
 - `TWILIO_PHONE_NUMBER`
@@ -48,6 +52,11 @@ Zusaetzlich fuer Google Calendar:
 - `GOOGLE_CLIENT_SECRET`
 - `GOOGLE_REFRESH_TOKEN`
 - `GOOGLE_CALENDAR_ID`
+- `GOOGLE_TIMEZONE`
+
+## Status pruefen
+
+Mit `GET /api/status` und Bearer-`ADMIN_TOKEN` laesst sich pruefen, welche Integrationen konfiguriert sind, ohne Geheimnisse auszugeben.
 
 ## Outbound-Anruf starten
 
@@ -60,4 +69,4 @@ curl -X POST "https://DEINE-DOMAIN/api/call" \
 
 ## Sicherheit
 
-Keine API-Keys in GitHub eintragen. Geheimnisse gehoeren nur in Railway Variables.
+Keine API-Keys oder OAuth-Geheimnisse in GitHub eintragen. Geheimnisse gehoeren nur in Railway Variables.
