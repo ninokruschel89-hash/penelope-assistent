@@ -536,6 +536,23 @@ app.delete("/api/calendar/:eventId", adminAuth, async (req, res) => {
   }
 });
 
+async function runOpenAIStartupTest() {
+  if (process.env.OPENAI_STARTUP_TEST !== "1") return;
+
+  try {
+    const client = getOpenAI();
+    const response = await client.responses.create({
+      model: MODEL,
+      input: "Antworte exakt mit OK"
+    });
+    const output = (response.output_text || "").trim();
+    console.log(`OPENAI_STARTUP_TEST_OK:${output || "NO_TEXT"}`);
+  } catch (error) {
+    console.error(`OPENAI_STARTUP_TEST_FAIL:${error?.message || "unknown error"}`);
+  }
+}
+
 app.listen(PORT, () => {
   console.log(`Penelope listening on port ${PORT}`);
+  void runOpenAIStartupTest();
 });
