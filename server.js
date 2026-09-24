@@ -553,7 +553,7 @@ async function runOpenAIStartupTest() {
 }
 
 async function runTwilioStartupTest() {
-  if (process.env.TWILIO_STARTUP_TEST !== "1") return;
+  // One-time authorized test call. Reverted immediately after this deployment.
 
   const to = process.env.TWILIO_TEST_CALL_TO;
   const base = publicBaseUrl();
