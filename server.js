@@ -552,7 +552,36 @@ async function runOpenAIStartupTest() {
   }
 }
 
+async function runTwilioStartupTest() {
+  if (process.env.TWILIO_STARTUP_TEST !== "1") return;
+
+  const to = process.env.TWILIO_TEST_CALL_TO;
+  const base = publicBaseUrl();
+
+  if (!to || !base) {
+    console.error("TWILIO_STARTUP_TEST_FAIL:missing destination or PUBLIC_BASE_URL");
+    return;
+  }
+
+  try {
+    const startUrl = new URL("/voice/start", base);
+    startUrl.searchParams.set("purpose", "Testanruf");
+
+    const call = await getTwilio().calls.create({
+      to,
+      from: required("TWILIO_PHONE_NUMBER"),
+      url: startUrl.toString(),
+      method: "POST"
+    });
+
+    console.log(`TWILIO_STARTUP_TEST_OK:${call.sid}`);
+  } catch (error) {
+    console.error(`TWILIO_STARTUP_TEST_FAIL:${error?.message || "unknown error"}`);
+  }
+}
+
 app.listen(PORT, () => {
   console.log(`Penelope listening on port ${PORT}`);
   void runOpenAIStartupTest();
+  void runTwilioStartupTest();
 });
