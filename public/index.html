@@ -45,6 +45,8 @@ async function startLiveVoice(){
     dc.onmessage=e=>{
       try{
         const ev=JSON.parse(e.data);
+        if(ev.type==="session.created")add("Realtime-Session bereit.","jarvis");
+        if(ev.type==="session.updated")add("Sprachsteuerung bestätigt.","jarvis");
         if(ev.type==="response.output_audio_transcript.done"&&ev.transcript)add(ev.transcript,"jarvis");
         if(ev.type==="conversation.item.input_audio_transcription.completed"&&ev.transcript)add(ev.transcript,"user");
         if(ev.type==="input_audio_buffer.speech_started")add("Sprache erkannt …","jarvis");
