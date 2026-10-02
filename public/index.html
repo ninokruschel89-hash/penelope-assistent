@@ -26,51 +26,43 @@ async function loadWeather(){
 }
 loadWeather();setInterval(loadWeather,600000);
 
-async function initGlobe(){
+function initGlobe(){
   const svg=document.getElementById("globeSvg"),info=document.getElementById("globeInfo");
   if(!svg||!info)return;
-  try{
-    const [{default:d3},{default:topojson},{default:world}]=await Promise.all([
-      import("https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm"),
-      import("https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/+esm"),
-      import("https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-50m.json",{with:{type:"json"}})
-    ]);
-    const width=560,height=560,projection=d3.geoOrthographic().scale(265).translate([280,280]).clipAngle(90),path=d3.geoPath(projection);
-    const root=d3.select(svg),countries=topojson.feature(world,world.objects.countries).features;
-    const graticule=d3.geoGraticule10();
-    root.selectAll("*").remove();
-    root.append("circle").attr("class","globeSphere").attr("cx",280).attr("cy",280).attr("r",265);
-    root.append("path").datum(graticule).attr("class","globeGraticule").attr("d",path);
-    const land=root.append("g").selectAll("path").data(countries).join("path").attr("class","globeLand").attr("d",path)
-      .on("click",(event,d)=>{event.stopPropagation();const name=d.properties?.name||"Unbekanntes Land";info.innerHTML="<b>"+name+"</b><div>Land ausgewählt</div><div class=\"globeHint\">Tippe auf eine Stadt oder ziehe die Kugel weiter.</div>"});
-    const cities=[
-      ["New York",40.7128,-74.006],["London",51.5074,-0.1278],["Paris",48.8566,2.3522],["Berlin",52.52,13.405],["Madrid",40.4168,-3.7038],
-      ["Rome",41.9028,12.4964],["Istanbul",41.0082,28.9784],["Cairo",30.0444,31.2357],["Dubai",25.2048,55.2708],
-      ["Mumbai",19.076,72.8777],["Singapore",1.3521,103.8198],["Tokyo",35.6762,139.6503],["Seoul",37.5665,126.978],
-      ["Beijing",39.9042,116.4074],["Sydney",-33.8688,151.2093],["São Paulo",-23.5505,-46.6333],["Mexico City",19.4326,-99.1332],
-      ["Toronto",43.6532,-79.3832],["Los Angeles",34.0522,-118.2437],["Cape Town",-33.9249,18.4241]
-    ];
-    const cityG=root.append("g");
-    function drawCities(){
-      const visible=cities.filter(d=>{const p=projection([d[2],d[1]]);return path({type:"Point",coordinates:[d[2],d[1]]})&&Math.hypot(p[0]-280,p[1]-280)<265;});
-      const dots=cityG.selectAll("g").data(visible,d=>d[0]).join(
-        enter=>{const g=enter.append("g");g.append("circle").attr("class","globeCity").attr("r",3.5);g.append("text").attr("class","globeCityLabel").attr("x",6).attr("y",3).text(d=>d[0]);return g},
-        update=>update,
-        exit=>exit.remove()
-      );
-      dots.attr("transform",d=>{const p=projection([d[2],d[1]]);return "translate("+p[0]+","+p[1]+")"}).on("click",(event,d)=>{event.stopPropagation();info.innerHTML="<b>"+d[0]+"</b><div>"+d[1].toFixed(4)+"°, "+d[2].toFixed(4)+"°</div><div class=\"globeHint\">Stadt ausgewählt</div>"});
-    }
-    function redraw(){land.attr("d",path);root.select(".globeGraticule").attr("d",path);drawCities()}
-    let timer;
-    const drag=d3.drag().on("start",()=>{clearInterval(timer)}).on("drag",(event)=>{const r=projection.rotate();projection.rotate([r[0]+event.dx*.45,r[1]-event.dy*.45]);redraw()}).on("end",()=>startSpin());
-    d3.select(svg).call(drag).on("click",function(event){if(event.target===svg){info.innerHTML="<b>Weltkugel</b><div>Tippe direkt auf einen Punkt oder ziehe die Kugel.</div><div class=\"globeHint\">Berührung ist aktiv.</div>"}});
-    svg.addEventListener("dblclick",()=>{projection.rotate([0,-8,0]);redraw()});
-    svg.addEventListener("pointerdown",()=>{clearInterval(timer)});
-    function startSpin(){clearInterval(timer);timer=setInterval(()=>{const r=projection.rotate();projection.rotate([r[0]+0.22,r[1],r[2]]);redraw()},40)}
-    projection.rotate([10,-8,0]);redraw();startSpin();
-  }catch(e){
-    info.innerHTML="<b>Weltkugel</b><div>Die Kartendaten konnten gerade nicht geladen werden.</div><div class=\"globeHint\">Die Oberfläche bleibt trotzdem funktionsfähig.</div>";
+  const NS="http://www.w3.org/2000/svg", cities=[
+    ["New York",40.7128,-74.006],["London",51.5074,-0.1278],["Paris",48.8566,2.3522],["Berlin",52.52,13.405],["Madrid",40.4168,-3.7038],
+    ["Rome",41.9028,12.4964],["Istanbul",41.0082,28.9784],["Cairo",30.0444,31.2357],["Dubai",25.2048,55.2708],
+    ["Mumbai",19.076,72.8777],["Singapore",1.3521,103.8198],["Tokyo",35.6762,139.6503],["Seoul",37.5665,126.978],
+    ["Beijing",39.9042,116.4074],["Sydney",-33.8688,151.2093],["São Paulo",-23.5505,-46.6333],["Mexico City",19.4326,-99.1332],
+    ["Toronto",43.6532,-79.3832],["Los Angeles",34.0522,-118.2437],["Cape Town",-33.9249,18.4241]
+  ];
+  const paths=[
+    "M90 180 L130 135 L190 125 L225 155 L205 195 L150 205 L110 230 Z",
+    "M235 155 L270 130 L315 145 L340 190 L320 230 L275 220 L250 190 Z",
+    "M345 150 L405 125 L465 145 L495 190 L470 235 L420 225 L390 190 Z",
+    "M110 260 L165 245 L205 280 L190 340 L145 365 L105 325 Z",
+    "M225 250 L285 240 L330 275 L315 340 L270 370 L230 330 Z",
+    "M350 250 L410 245 L455 280 L440 340 L390 365 L350 320 Z",
+    "M180 380 L230 360 L270 395 L245 445 L205 460 L175 420 Z",
+    "M300 375 L350 355 L395 390 L380 435 L335 455 L305 420 Z"
+  ];
+  const cx=280,cy=280,r=265; let rot=10,dragging=false,lastX=0;
+  function clear(){while(svg.firstChild)svg.removeChild(svg.firstChild)}
+  function el(tag,attrs){const n=document.createElementNS(NS,tag);for(const k in attrs)n.setAttribute(k,attrs[k]);svg.appendChild(n);return n}
+  function draw(){
+    clear(); el("circle",{class:"globeSphere",cx,cy,r});
+    for(let i=-60;i<=60;i+=30)el("ellipse",{class:"globeGraticule",cx,cy,rx:r,ry:r*Math.cos(i*Math.PI/180),transform:"rotate("+rot+" "+cx+" "+cy+")"});
+    for(let i=0;i<12;i++){const lon=-150+i*30;el("ellipse",{class:"globeGraticule",cx,cy,rx:r*Math.abs(Math.cos((lon+rot)*Math.PI/180)),ry:r,transform:"rotate(90 "+cx+" "+cy+")"})}
+    paths.forEach((d,i)=>{const p=el("path",{class:"globeLand",d,transform:"rotate("+(rot*.12)+" "+cx+" "+cy+")"});p.dataset.name=["North America","Europe","Asia","South America","Africa","Australia","Antarctica","Pacific region"][i];p.addEventListener("click",e=>{e.stopPropagation();info.innerHTML="<b>"+p.dataset.name+"</b><div>Region ausgewählt</div><div class=\"globeHint\">Tippe auf eine markierte Stadt.</div>"})});
+    cities.forEach(city=>{const x=cx+(city[2]+rot)/180*r*.82,y=cy-city[1]/90*r*.82;if(Math.hypot(x-cx,y-cy)<r-4){const g=el("g",{});const q=document.createElementNS(NS,"circle");q.setAttribute("class","globeCity");q.setAttribute("cx",x);q.setAttribute("cy",y);q.setAttribute("r","4");g.appendChild(q);const t=document.createElementNS(NS,"text");t.setAttribute("class","globeCityLabel");t.setAttribute("x",x+7);t.setAttribute("y",y+3);t.textContent=city[0];g.appendChild(t);svg.appendChild(g);g.addEventListener("click",e=>{e.stopPropagation();info.innerHTML="<b>"+city[0]+"</b><div>"+city[1].toFixed(4)+"°, "+city[2].toFixed(4)+"°</div><div class=\"globeHint\">Stadt ausgewählt</div>"})}});
   }
+  svg.style.touchAction="none";
+  svg.addEventListener("pointerdown",e=>{dragging=true;lastX=e.clientX;svg.setPointerCapture(e.pointerId)});
+  svg.addEventListener("pointermove",e=>{if(!dragging)return;rot+=(e.clientX-lastX)*.35;lastX=e.clientX;draw()});
+  svg.addEventListener("pointerup",()=>{dragging=false});
+  svg.addEventListener("dblclick",()=>{rot=10;draw()});
+  draw();
+  setInterval(()=>{if(!dragging){rot+=.22;draw()}},40);
 }
 initGlobe();
 
