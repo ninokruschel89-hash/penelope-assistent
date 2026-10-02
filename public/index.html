@@ -29,40 +29,29 @@ loadWeather();setInterval(loadWeather,600000);
 function initGlobe(){
   const svg=document.getElementById("globeSvg"),info=document.getElementById("globeInfo");
   if(!svg||!info)return;
-  const NS="http://www.w3.org/2000/svg", cities=[
+  const NS="http://www.w3.org/2000/svg",cities=[
     ["New York",40.7128,-74.006],["London",51.5074,-0.1278],["Paris",48.8566,2.3522],["Berlin",52.52,13.405],["Madrid",40.4168,-3.7038],
     ["Rome",41.9028,12.4964],["Istanbul",41.0082,28.9784],["Cairo",30.0444,31.2357],["Dubai",25.2048,55.2708],
     ["Mumbai",19.076,72.8777],["Singapore",1.3521,103.8198],["Tokyo",35.6762,139.6503],["Seoul",37.5665,126.978],
     ["Beijing",39.9042,116.4074],["Sydney",-33.8688,151.2093],["São Paulo",-23.5505,-46.6333],["Mexico City",19.4326,-99.1332],
     ["Toronto",43.6532,-79.3832],["Los Angeles",34.0522,-118.2437],["Cape Town",-33.9249,18.4241]
   ];
-  const paths=[
-    "M90 180 L130 135 L190 125 L225 155 L205 195 L150 205 L110 230 Z",
-    "M235 155 L270 130 L315 145 L340 190 L320 230 L275 220 L250 190 Z",
-    "M345 150 L405 125 L465 145 L495 190 L470 235 L420 225 L390 190 Z",
-    "M110 260 L165 245 L205 280 L190 340 L145 365 L105 325 Z",
-    "M225 250 L285 240 L330 275 L315 340 L270 370 L230 330 Z",
-    "M350 250 L410 245 L455 280 L440 340 L390 365 L350 320 Z",
-    "M180 380 L230 360 L270 395 L245 445 L205 460 L175 420 Z",
-    "M300 375 L350 355 L395 390 L380 435 L335 455 L305 420 Z"
-  ];
   const cx=280,cy=280,r=265; let rot=10,dragging=false,lastX=0;
   function clear(){while(svg.firstChild)svg.removeChild(svg.firstChild)}
   function el(tag,attrs){const n=document.createElementNS(NS,tag);for(const k in attrs)n.setAttribute(k,attrs[k]);svg.appendChild(n);return n}
   function draw(){
     clear(); el("circle",{class:"globeSphere",cx,cy,r});
-    for(let i=-60;i<=60;i+=30)el("ellipse",{class:"globeGraticule",cx,cy,rx:r,ry:r*Math.cos(i*Math.PI/180),transform:"rotate("+rot+" "+cx+" "+cy+")"});
-    for(let i=0;i<12;i++){const lon=-150+i*30;el("ellipse",{class:"globeGraticule",cx,cy,rx:r*Math.abs(Math.cos((lon+rot)*Math.PI/180)),ry:r,transform:"rotate(90 "+cx+" "+cy+")"})}
-    paths.forEach((d,i)=>{const p=el("path",{class:"globeLand",d,transform:"rotate("+(rot*.12)+" "+cx+" "+cy+")"});p.dataset.name=["North America","Europe","Asia","South America","Africa","Australia","Antarctica","Pacific region"][i];p.addEventListener("click",e=>{e.stopPropagation();info.innerHTML="<b>"+p.dataset.name+"</b><div>Region ausgewählt</div><div class=\"globeHint\">Tippe auf eine markierte Stadt.</div>"})});
-    cities.forEach(city=>{const x=cx+(city[2]+rot)/180*r*.82,y=cy-city[1]/90*r*.82;if(Math.hypot(x-cx,y-cy)<r-4){const g=el("g",{});const q=document.createElementNS(NS,"circle");q.setAttribute("class","globeCity");q.setAttribute("cx",x);q.setAttribute("cy",y);q.setAttribute("r","4");g.appendChild(q);const t=document.createElementNS(NS,"text");t.setAttribute("class","globeCityLabel");t.setAttribute("x",x+7);t.setAttribute("y",y+3);t.textContent=city[0];g.appendChild(t);svg.appendChild(g);g.addEventListener("click",e=>{e.stopPropagation();info.innerHTML="<b>"+city[0]+"</b><div>"+city[1].toFixed(4)+"°, "+city[2].toFixed(4)+"°</div><div class=\"globeHint\">Stadt ausgewählt</div>"})}});
+    const landPath="M110 185 Q150 125 220 155 T300 175 Q360 110 455 160 Q500 205 445 245 Q390 270 350 225 Q300 260 250 225 Q205 275 150 240 Q105 225 110 185 Z M205 285 Q245 255 285 285 L300 350 Q260 395 215 365 Q185 330 205 285 Z M330 285 Q390 260 450 300 L430 365 Q370 390 325 350 Z M245 390 Q290 370 330 400 L315 455 Q270 470 235 430 Z";
+    const p=el("path",{class:"globeLand",d:landPath,transform:"rotate("+(rot*.08)+" "+cx+" "+cy+")"});
+    p.addEventListener("click",e=>{e.stopPropagation();info.innerHTML="<b>Weltkarte</b><div>Landregion ausgewählt</div><div class=\"globeHint\">Die Städte sind markiert.</div>"});
+    cities.forEach(city=>{const x=cx+(city[2]+rot)/180*r*.82,y=cy-city[1]/90*r*.82;if(Math.hypot(x-cx,y-cy)<r-4){const g=document.createElementNS(NS,"g");const q=document.createElementNS(NS,"circle");q.setAttribute("class","globeCity");q.setAttribute("cx",x);q.setAttribute("cy",y);q.setAttribute("r","4");g.appendChild(q);const t=document.createElementNS(NS,"text");t.setAttribute("class","globeCityLabel");t.setAttribute("x",x+7);t.setAttribute("y",y+3);t.textContent=city[0];g.appendChild(t);svg.appendChild(g);g.addEventListener("click",e=>{e.stopPropagation();info.innerHTML="<b>"+city[0]+"</b><div>"+city[1].toFixed(4)+"°, "+city[2].toFixed(4)+"°</div><div class=\"globeHint\">Stadt ausgewählt</div>"})}});
   }
   svg.style.touchAction="none";
   svg.addEventListener("pointerdown",e=>{dragging=true;lastX=e.clientX;svg.setPointerCapture(e.pointerId)});
   svg.addEventListener("pointermove",e=>{if(!dragging)return;rot+=(e.clientX-lastX)*.35;lastX=e.clientX;draw()});
   svg.addEventListener("pointerup",()=>{dragging=false});
   svg.addEventListener("dblclick",()=>{rot=10;draw()});
-  draw();
-  setInterval(()=>{if(!dragging){rot+=.22;draw()}},40);
+  draw();setInterval(()=>{if(!dragging){rot+=.22;draw()}},40);
 }
 initGlobe();
 
