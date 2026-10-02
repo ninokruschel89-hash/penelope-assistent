@@ -339,6 +339,31 @@ app.get("/health", (_req, res) => {
   res.status(200).json({ ok: true });
 });
 
+const chatRate = new Map();
+app.post("/api/chat", async (req, res) => {
+  try {
+    const ip = req.ip || "unknown";
+    const now = Date.now();
+    const recent = (chatRate.get(ip) || []).filter((t) => now - t < 60000);
+    if (recent.length >= 20) return res.status(429).json({ error: "Zu viele Anfragen. Bitte kurz warten." });
+    recent.push(now);
+    chatRate.set(ip, recent);
+
+    const message = String(req.body?.message || "").trim().slice(0, 4000);
+    if (!message) return res.status(400).json({ error: "Nachricht fehlt." });
+
+    const response = await getOpenAI().responses.create({
+      model: MODEL,
+      instructions: "Du bist Jarvis, ein deutschsprachiger persönlicher KI-Assistent. Antworte präzise, ruhig, technisch souverän und hilfreich. Behaupte keine Aktionen ausgeführt zu haben, die dir nicht als Tool zur Verfügung stehen.",
+      input: message
+    });
+    res.json({ ok: true, reply: (response.output_text || "").trim() || "Ich konnte gerade keine Antwort erzeugen." });
+  } catch (error) {
+    console.error("Jarvis chat error", error);
+    res.status(500).json({ error: "Jarvis konnte die Anfrage gerade nicht verarbeiten." });
+  }
+});
+
 app.get("/api/status", adminAuth, (_req, res) => {
   res.json({
     ok: true,
