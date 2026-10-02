@@ -364,6 +364,41 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
+app.get("/api/realtime/token", async (req, res) => {
+  try {
+    const response = await fetch("https://api.openai.com/v1/realtime/client_secrets", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${required("OPENAI_API_KEY")}`,
+        "Content-Type": "application/json",
+        "OpenAI-Safety-Identifier": "jarvis-owner"
+      },
+      body: JSON.stringify({
+        session: {
+          type: "realtime",
+          model: "gpt-realtime-2.1",
+          instructions: "Du bist Jarvis, ein deutschsprachiger persönlicher KI-Assistent. Sprich ruhig, präzise, souverän und natürlich. Antworte standardmäßig knapp. Behaupte keine Aktionen ausgeführt zu haben, die dir nicht als Tool zur Verfügung stehen.",
+          audio: {
+            output: { voice: "marin" }
+          }
+        }
+      })
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      console.error("Realtime client secret error", response.status, data?.error?.message || data);
+      return res.status(502).json({ error: "Live-Sprachsession konnte nicht gestartet werden." });
+    }
+
+    res.set("Cache-Control", "no-store");
+    res.json(data);
+  } catch (error) {
+    console.error("Realtime token error", error);
+    res.status(500).json({ error: "Live-Sprachsession konnte nicht gestartet werden." });
+  }
+});
+
 app.get("/api/status", adminAuth, (_req, res) => {
   res.json({
     ok: true,
