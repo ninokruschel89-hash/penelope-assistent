@@ -28,11 +28,15 @@ async function startLiveVoice(){
     if(!ephemeral)throw new Error("Kein Live-Token erhalten");
 
     livePc=new RTCPeerConnection();
-    liveAudio=document.createElement("audio");liveAudio.autoplay=true;
-    livePc.ontrack=e=>{liveAudio.srcObject=e.streams[0]};
+    liveAudio=document.createElement("audio");liveAudio.autoplay=true;liveAudio.playsInline=true;
+    livePc.ontrack=e=>{liveAudio.srcObject=e.streams[0];liveAudio.play().catch(()=>{})};
+    livePc.onconnectionstatechange=()=>add("Audio-Verbindung: "+livePc.connectionState,"jarvis");
 
-    liveStream=await navigator.mediaDevices.getUserMedia({audio:true});
-    liveStream.getTracks().forEach(track=>livePc.addTrack(track,liveStream));
+    liveStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+    const audioTrack=liveStream.getAudioTracks()[0];
+    if(!audioTrack)throw new Error("Keine Mikrofonspur erhalten");
+    add("Mikrofon: "+audioTrack.readyState+(audioTrack.muted?" (stumm)":" (aktiv)"),"jarvis");
+    livePc.addTrack(audioTrack,liveStream);
 
     const dc=livePc.createDataChannel("oai-events");
     dc.onopen=()=>{
@@ -43,6 +47,9 @@ async function startLiveVoice(){
         const ev=JSON.parse(e.data);
         if(ev.type==="response.output_audio_transcript.done"&&ev.transcript)add(ev.transcript,"jarvis");
         if(ev.type==="conversation.item.input_audio_transcription.completed"&&ev.transcript)add(ev.transcript,"user");
+        if(ev.type==="input_audio_buffer.speech_started")add("Sprache erkannt …","jarvis");
+        if(ev.type==="input_audio_buffer.speech_stopped")add("Spracheingabe beendet – verarbeite …","jarvis");
+        if(ev.type==="conversation.item.input_audio_transcription.failed")add("Transkription fehlgeschlagen: "+(ev.error?.message||"unbekannter Fehler"),"jarvis");
         if(ev.type==="error"){
           add("Live-Sprachverbindung meldet einen Fehler. Ich schalte auf normale Spracheingabe um.","jarvis");
           stopLiveVoice();
