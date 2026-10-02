@@ -36,10 +36,6 @@ async function startLiveVoice(){
 
     const dc=livePc.createDataChannel("oai-events");
     dc.onopen=()=>{
-      dc.send(JSON.stringify({type:"session.update",session:{
-        input_audio_transcription:{model:"gpt-4o-mini-transcribe"},
-        turn_detection:{type:"server_vad",create_response:true,interrupt_response:true}
-      }}));
       add("Live-Sprachmodus verbunden. Sprich einfach mit mir.","jarvis");
     };
     dc.onmessage=e=>{
