@@ -15,7 +15,7 @@ function add(text,who){log.classList.add("show");const d=document.createElement(
 async function ask(){const message=prompt.value.trim();if(!message)return;prompt.value="";add(message,"user");send.disabled=true;try{const r=await fetch("/api/chat",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({message})});const j=await r.json();const answer=j.reply||j.error||"Keine Antwort.";add(answer,"jarvis");speak(answer)}catch(e){add("Verbindung zu Jarvis fehlgeschlagen.","jarvis")}finally{send.disabled=false;prompt.focus()}}
 send.onclick=ask;prompt.addEventListener("keydown",e=>{if(e.key==="Enter")ask()});
 function speak(text){if(!("speechSynthesis" in window))return;window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang="de-DE";u.rate=.92;u.pitch=.82;const voices=window.speechSynthesis.getVoices();u.voice=voices.find(v=>/de-DE/i.test(v.lang)&&/male|mann|markus|conrad|killian/i.test(v.name))||voices.find(v=>/de-DE/i.test(v.lang))||null;window.speechSynthesis.speak(u)}
-let livePc=null,liveStream=null,liveAudio=null,liveStarting=false;
+let livePc=null,liveStream=null,liveAudio=null,liveStarting=false,liveSpeechSeen=false,liveFallbackTimer=null;
 async function startLiveVoice(){
   if(liveStarting)return;
   if(livePc){stopLiveVoice();return}
@@ -40,7 +40,16 @@ async function startLiveVoice(){
 
     const dc=livePc.createDataChannel("oai-events");
     dc.onopen=()=>{
+      liveSpeechSeen=false;
       add("Live-Sprachmodus verbunden. Sprich einfach mit mir.","jarvis");
+      clearTimeout(liveFallbackTimer);
+      liveFallbackTimer=setTimeout(()=>{
+        if(livePc&&!liveSpeechSeen&&rec){
+          add("Realtime hört noch nichts – normale Spracheingabe übernimmt.","jarvis");
+          stopLiveVoice();
+          setTimeout(()=>{try{rec.start()}catch{}},250);
+        }
+      },7000);
     };
     dc.onmessage=e=>{
       try{
@@ -49,7 +58,7 @@ async function startLiveVoice(){
         if(ev.type==="session.updated")add("Sprachsteuerung bestätigt.","jarvis");
         if(ev.type==="response.output_audio_transcript.done"&&ev.transcript)add(ev.transcript,"jarvis");
         if(ev.type==="conversation.item.input_audio_transcription.completed"&&ev.transcript)add(ev.transcript,"user");
-        if(ev.type==="input_audio_buffer.speech_started")add("Sprache erkannt …","jarvis");
+        if(ev.type==="input_audio_buffer.speech_started"){liveSpeechSeen=true;clearTimeout(liveFallbackTimer);add("Sprache erkannt …","jarvis");}
         if(ev.type==="input_audio_buffer.speech_stopped")add("Spracheingabe beendet – verarbeite …","jarvis");
         if(ev.type==="conversation.item.input_audio_transcription.failed")add("Transkription fehlgeschlagen: "+(ev.error?.message||"unbekannter Fehler"),"jarvis");
         if(ev.type==="error"){
@@ -77,6 +86,7 @@ async function startLiveVoice(){
   }finally{liveStarting=false}
 }
 function stopLiveVoice(){
+  clearTimeout(liveFallbackTimer);liveFallbackTimer=null;liveSpeechSeen=false;
   if(liveStream)liveStream.getTracks().forEach(t=>t.stop());
   if(livePc)livePc.close();
   livePc=null;liveStream=null;
