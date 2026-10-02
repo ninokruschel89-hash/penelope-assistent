@@ -35,12 +35,23 @@ async function startLiveVoice(){
     liveStream.getTracks().forEach(track=>livePc.addTrack(track,liveStream));
 
     const dc=livePc.createDataChannel("oai-events");
-    dc.onopen=()=>add("Live-Sprachmodus aktiv. Sprich einfach mit mir.","jarvis");
+    dc.onopen=()=>{
+      dc.send(JSON.stringify({type:"session.update",session:{
+        input_audio_transcription:{model:"gpt-4o-mini-transcribe"},
+        turn_detection:{type:"server_vad",create_response:true,interrupt_response:true}
+      }}));
+      add("Live-Sprachmodus verbunden. Sprich einfach mit mir.","jarvis");
+    };
     dc.onmessage=e=>{
       try{
         const ev=JSON.parse(e.data);
         if(ev.type==="response.output_audio_transcript.done"&&ev.transcript)add(ev.transcript,"jarvis");
         if(ev.type==="conversation.item.input_audio_transcription.completed"&&ev.transcript)add(ev.transcript,"user");
+        if(ev.type==="error"){
+          add("Live-Sprachverbindung meldet einen Fehler. Ich schalte auf normale Spracheingabe um.","jarvis");
+          stopLiveVoice();
+          if(rec)try{rec.start()}catch{}
+        }
       }catch{}
     };
 
