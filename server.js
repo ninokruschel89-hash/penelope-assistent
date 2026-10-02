@@ -390,7 +390,7 @@ app.get("/api/realtime/token", async (req, res) => {
                 interrupt_response: true
               }
             },
-            output: { voice: "cedar" }
+            output: { voice: "cedar" } // Jarvis male voice
           }
         }
       })
