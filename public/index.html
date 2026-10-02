@@ -33,7 +33,7 @@ async function initGlobe(){
     const [{default:d3},{default:topojson},{default:world}]=await Promise.all([
       import("https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm"),
       import("https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/+esm"),
-      import("https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-50m.json/+esm")
+      import("https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-50m.json",{with:{type:"json"}})
     ]);
     const width=560,height=560,projection=d3.geoOrthographic().scale(265).translate([280,280]).clipAngle(90),path=d3.geoPath(projection);
     const root=d3.select(svg),countries=topojson.feature(world,world.objects.countries).features;
