@@ -378,7 +378,7 @@ app.get("/api/realtime/token", async (req, res) => {
           type: "realtime",
           model: "gpt-realtime-2.1",
           output_modalities: ["audio"],
-          instructions: "Du bist Jarvis, ein deutschsprachiger persönlicher KI-Assistent. Sprich ruhig, präzise, souverän und natürlich. Antworte standardmäßig knapp. Behaupte keine Aktionen ausgeführt zu haben, die dir nicht als Tool zur Verfügung stehen.",
+          instructions: "Du bist Jarvis, ein deutschsprachiger persönlicher KI-Assistent. Sprich mit einer tiefen, kräftigen, männlichen, kontrollierten und souveränen Stimme. Der Klang soll weniger weich und weniger warm sein, mit klarer Artikulation, ruhigem Tempo und leicht britischem, technischem Jarvis-Charakter. Antworte standardmäßig knapp. Behaupte keine Aktionen ausgeführt zu haben, die dir nicht als Tool zur Verfügung stehen.",
           audio: {
             input: {
               turn_detection: {
@@ -390,7 +390,7 @@ app.get("/api/realtime/token", async (req, res) => {
                 interrupt_response: true
               }
             },
-            output: { voice: "cedar" } // Jarvis male voice
+            output: { voice: "echo" } // Jarvis: firmer, less soft male voice
           }
         }
       })
