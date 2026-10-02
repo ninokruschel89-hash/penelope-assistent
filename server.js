@@ -377,12 +377,15 @@ app.get("/api/realtime/token", async (req, res) => {
         session: {
           type: "realtime",
           model: "gpt-realtime-2.1",
+          output_modalities: ["audio"],
           instructions: "Du bist Jarvis, ein deutschsprachiger persönlicher KI-Assistent. Sprich ruhig, präzise, souverän und natürlich. Antworte standardmäßig knapp. Behaupte keine Aktionen ausgeführt zu haben, die dir nicht als Tool zur Verfügung stehen.",
           audio: {
             input: {
-              transcription: { model: "gpt-4o-mini-transcribe", language: "de" },
               turn_detection: {
                 type: "server_vad",
+                threshold: 0.35,
+                prefix_padding_ms: 300,
+                silence_duration_ms: 600,
                 create_response: true,
                 interrupt_response: true
               }
