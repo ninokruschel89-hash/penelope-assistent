@@ -25,10 +25,62 @@ async function loadWeather(){
 }
 loadWeather();setInterval(loadWeather,600000);
 
+function initCanvasEarth(host,info,cities){
+  host.replaceChildren();
+  const canvas=document.createElement('canvas');host.appendChild(canvas);
+  canvas.style.cssText='width:100%;height:100%;display:block;touch-action:none;cursor:grab';
+  canvas.setAttribute('aria-label','Drehbare Erde mit geografisch richtigen Städten');
+  const ctx=canvas.getContext('2d');
+  let lon=10*Math.PI/180,lat=30*Math.PI/180,texture=null,size=420,visible=[],drag=null,moved=false;
+  const image=new Image();image.crossOrigin='anonymous';
+  image.onload=()=>{
+    const source=document.createElement('canvas');source.width=image.width;source.height=image.height;
+    const sourceCtx=source.getContext('2d',{willReadFrequently:true});sourceCtx.drawImage(image,0,0);
+    try{texture={data:sourceCtx.getImageData(0,0,image.width,image.height).data,width:image.width,height:image.height};draw();}
+    catch(e){info.textContent='Erdtextur konnte nicht geladen werden.';}
+  };
+  image.onerror=()=>{info.textContent='Erdtextur konnte nicht geladen werden. Bitte neu laden.';};
+  image.src='https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg';
+  function draw(){
+    const r=size*.43,c=size/2,sl=Math.sin(lat),cl=Math.cos(lat),out=ctx.createImageData(size,size);
+    if(texture)for(let y=0;y<size;y++)for(let x=0;x<size;x++){
+      const nx=(x-c)/r,ny=(c-y)/r,q=nx*nx+ny*ny;if(q>1)continue;
+      const z=Math.sqrt(1-q),latitude=Math.asin(ny*cl+z*sl),longitude=lon+Math.atan2(nx,z*cl-ny*sl);
+      const u=((longitude/(2*Math.PI)+.5)%1+1)%1;
+      const tx=Math.min(texture.width-1,Math.floor(u*texture.width)),ty=Math.min(texture.height-1,Math.floor((.5-latitude/Math.PI)*texture.height));
+      const src=(ty*texture.width+tx)*4,dst=(y*size+x)*4,shade=.64+.36*z;
+      out.data[dst]=texture.data[src]*shade;out.data[dst+1]=texture.data[src+1]*shade;out.data[dst+2]=texture.data[src+2]*shade;out.data[dst+3]=255;
+    }
+    ctx.clearRect(0,0,size,size);ctx.putImageData(out,0,0);
+    ctx.strokeStyle='#45d8ff';ctx.lineWidth=1.2;ctx.beginPath();ctx.arc(c,c,r,0,2*Math.PI);ctx.stroke();
+    visible=[];ctx.font='10px Arial';
+    for(const city of cities){
+      const p=city.lat*Math.PI/180,d=city.lng*Math.PI/180-lon,cp=Math.cos(p),sp=Math.sin(p);
+      const z=sp*sl+cp*Math.cos(d)*cl;if(z<.08)continue;
+      const x=c+r*cp*Math.sin(d),y=c-r*(sp*cl-cp*Math.cos(d)*sl);
+      visible.push({city,x,y});ctx.fillStyle='#dff7ff';ctx.beginPath();ctx.arc(x,y,2.3,0,2*Math.PI);ctx.fill();
+      ctx.strokeStyle='#03121e';ctx.lineWidth=2.5;ctx.strokeText(city.name,x+5,y+3);ctx.fillText(city.name,x+5,y+3);
+    }
+  }
+  function resize(){size=Math.min(500,Math.max(240,Math.round(host.clientWidth)));canvas.width=size;canvas.height=size;draw();}
+  new ResizeObserver(resize).observe(host);resize();
+  canvas.onpointerdown=e=>{drag={x:e.clientX,y:e.clientY,lon,lat};moved=false;canvas.setPointerCapture(e.pointerId);};
+  canvas.onpointermove=e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>5)moved=true;lon=drag.lon-dx*.007;lat=Math.max(-1.45,Math.min(1.45,drag.lat+dy*.007));draw();};
+  canvas.onpointerup=e=>{
+    if(!moved){const b=canvas.getBoundingClientRect(),x=(e.clientX-b.left)*size/b.width,y=(e.clientY-b.top)*size/b.height;
+      const hit=visible.find(p=>Math.hypot(p.x-x,p.y-y)<14);
+      if(hit)info.innerHTML='<b>'+hit.city.name+'</b><div>'+hit.city.lat.toFixed(2)+'° · '+hit.city.lng.toFixed(2)+'°</div><div class="globeHint">Ziehen zum Drehen · Doppeltippen zum Zurücksetzen</div>';
+    }drag=null;
+  };
+  canvas.onpointercancel=()=>{drag=null;};
+  canvas.ondblclick=()=>{lon=10*Math.PI/180;lat=30*Math.PI/180;draw();};
+  info.innerHTML='<b>Weltkugel</b><div>Echte Erde · Städte an ihren geografischen Positionen</div><div class="globeHint">Ziehen zum Drehen · Doppeltippen zum Zurücksetzen</div>';
+}
+
 function initGlobe(){
   const host=document.getElementById("globeCanvas"), info=document.getElementById("globeInfo");
   if(!host)return;
-  if(!window.Globe){info.innerHTML='<b>Erde konnte nicht geladen werden</b><div>Bitte Seite neu laden.</div>';return;}
+
   const cities=[
     {name:"Aschaffenburg",lat:49.977,lng:9.1521},{name:"Berlin",lat:52.52,lng:13.405},
     {name:"London",lat:51.5074,lng:-0.1278},{name:"Paris",lat:48.8566,lng:2.3522},
@@ -39,6 +91,7 @@ function initGlobe(){
     {name:"Tokio",lat:35.6762,lng:139.6503},{name:"Sydney",lat:-33.8688,lng:151.2093},
     {name:"São Paulo",lat:-23.5505,lng:-46.6333},{name:"Kapstadt",lat:-33.9249,lng:18.4241}
   ];
+  if(!window.Globe){initCanvasEarth(host,info,cities);return;}
   try{
     const g=Globe()(host)
       .width(host.clientWidth).height(host.clientHeight)
@@ -55,7 +108,7 @@ function initGlobe(){
     host.addEventListener("dblclick",()=>g.pointOfView(home,600));
     new ResizeObserver(()=>g.width(host.clientWidth).height(host.clientHeight)).observe(host);
     info.innerHTML='<b>Weltkugel</b><div>Echte Erde · Städte an ihren geografischen Positionen</div><div class="globeHint">Ziehen zum Drehen · Doppeltippen zum Zurücksetzen</div>';
-  }catch(error){console.error("Globe initialization failed",error);info.innerHTML='<b>Erde konnte nicht geladen werden</b><div>Bitte Seite neu laden.</div>';}
+  }catch(error){console.warn("Using Canvas Earth",error);initCanvasEarth(host,info,cities);}
 }
 initGlobe();
 
